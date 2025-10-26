@@ -1,0 +1,229 @@
+       IDENTIFICATION DIVISION.                                         00000100
+       PROGRAM-ID. 'COMPILER'.                                          00000299
+      *                                                                 00000302
+       ENVIRONMENT DIVISION.                                            00000400
+       INPUT-OUTPUT SECTION.                                            00000502
+       FILE-CONTROL.                                                    00000602
+           SELECT SOURCE-FILE ASSIGN TO UT-S-SYSIN.                     00000707
+      *                                                                 00000802
+       DATA DIVISION.                                                   00000900
+       FILE SECTION.                                                    00001002
+       FD  SOURCE-FILE                                                  00001114
+           LABEL RECORDS ARE STANDARD                                   00001210
+           BLOCK CONTAINS 10 RECORDS                                    00001310
+           RECORD CONTAINS 80 CHARACTERS.                               00001410
+      *                                                                 00001510
+           01 FD-SOURCE-LINE PIC X(80).                                 00001660
+      *                                                                 00001710
+       WORKING-STORAGE SECTION.                                         00001804
+      * MAIN                                                            00001958
+           01 WS-EOF-FLAG PIC X VALUE 'N'.                              00002060
+               88 WS-EOF VALUE 'Y'.                                     00002104
+      * LEXER                                                           00002258
+           01 WS-LEX-CHAR PIC X.                                        00002361
+           01 WS-LEX-IN-PTR PIC 99 COMP VALUE 1.                        00002460
+           01 WS-LEX-OUT-PTR PIC 99 COMP VALUE 1.                       00002560
+           01 WS-LEX-INPUT.                                             00002658
+               02 WS-LEX-IN PIC X OCCURS 80.                            00002758
+           01 WS-LEX-WORD.                                              00002858
+               02 WS-LEX-OUT PIC X OCCURS 20.                           00002958
+           01 WS-LEX-TYPE PIC X.                                        00003099
+               88 WS-LEX-NUMBER VALUE 'N'.                              00003199
+      *    'S' => SEEK                                                  00003258
+      *    'B' => BUFFER                                                00003358
+      *    'L' => LITERAL STRING                                        00003494
+      *    'C' => COMMENT                                               00003599
+      *    'D' => DONE                                                  00003658
+           01 WS-LEX-STATE PIC X VALUE 'S'.                             00003759
+      * COMPILER                                                        00003899
+           01 WS-EMIT-ADDR PIC 9(6) VALUE 0.                            00003999
+           01 WS-LABEL-COUNT PIC 9999 COMP VALUE 1.                     00004099
+           01 WS-LABEL-TABLE.                                           00004199
+               02 WS-LABEL OCCURS 200 INDEXED BY I-LABEL.               00004299
+                   03 WS-LABEL-NAME PIC X(20).                          00004399
+                   03 WS-LABEL-ADDR PIC 9999.                           00004499
+           01 WS-VAR-COUNT PIC 9999 COMP VALUE 1.                       00004599
+           01 WS-VAR-TABLE.                                             00004699
+               02 WS-VAR OCCURS 200 INDEXED BY I-VAR.                   00004799
+                   03 WS-VAR-NAME PIC X(20).                            00004899
+                   03 WS-VAR-ADDR PIC 9999.                             00004999
+      * WRITE                                                           00005099
+           01 WS-WRITE-WORD PIC X(20).                                  00005199
+      * NUMBER CONVERSION                                               00005299
+           01 WS-CONV-INDEX  PIC 99 COMP.                               00005399
+           01 WS-CONV-NUMBER PIC 9999                                   00005499
+           01 WS-CONV-DIGIT  PIC 9.                                     00005599
+      *                                                                 00005646
+      *                                                                 00005702
+       PROCEDURE DIVISION.                                              00005800
+       MAIN.                                                            00005900
+           OPEN INPUT SOURCE-FILE.                                      00006002
+           PERFORM READ-LINE UNTIL WS-EOF.                              00006108
+           CLOSE SOURCE-FILE.                                           00006224
+           DISPLAY 'BRK'.                                               00006399
+           STOP RUN.                                                    00006402
+                                                                        00006531
+       READ-LINE.                                                       00006608
+           READ SOURCE-FILE RECORD                                      00006711
+               AT END MOVE 'Y' TO WS-EOF-FLAG.                          00006812
+           IF NOT WS-EOF                                                00006948
+               PERFORM PROCESS-LINE.                                    00007012
+                                                                        00007131
+      *                                                                 00007299
+      * COMPILER                                                        00007399
+      *                                                                 00007499
+       PROCESS-LINE.                                                    00007599
+           PERFORM LEX-RESET.                                           00007699
+           MOVE FD-SOURCE-LINE TO WS-LEX-INPUT.                         00007799
+           PERFORM LEX.                                                 00007899
+      *    DISPLAY 'WORD: ' WS-LEX-WORD.                                00007999
+      *                                                                 00008099
+           IF WS-LEX-WORD EQUAL 'LET'   PERFORM COMPILE-LET.            00008199
+           IF WS-LEX-WORD EQUAL 'LABEL' PERFORM COMPILE-LABEL.          00008299
+           IF WS-LEX-WORD EQUAL 'PRINT' PERFORM COMPILE-PRINT.          00008399
+           IF WS-LEX-WORD EQUAL 'GOTO'  PERFORM COMPILE-GOTO.           00008499
+      *                                                                 00008599
+      *                                                                 00008699
+       COMPILE-LET.                                                     00008799
+           PERFORM LEX.                                                 00008899
+           MOVE WS-LEX-WORD TO WS-WRITE-WORD.                           00008999
+           PERFORM LEX.                                                 00009099
+           PERFORM LEX.                                                 00009199
+           PERFORM READ-VAR.                                            00009299
+           PERFORM LEX.                                                 00009399
+           IF      WS-LEX-WORD EQUAL TO 'PLUS'  PERFORM COMPILE-PLUS    00009499
+           ELSE IF WS-LEX-WORD EQUAL TO 'MINUS' PERFORM COMPILE-MINUS   00009599
+           OTHERWISE PERFORM WRITE-VAR.                                 00009699
+      *                                                                 00009799
+       COMPILE-PLUS.                                                    00009899
+           DISPLAY 'TFR'                                                00009999
+           PERFORM LEX.                                                 00010099
+           PERFORM READ-VAR.                                            00010199
+           DISPLAY 'ADD'                                                00010299
+           PERFORM WRITE-VAR.                                           00010399
+           ADD 2 TO WS-EMIT-ADDR.                                       00010499
+      *                                                                 00010599
+       COMPILE-MINUS.                                                   00010699
+           DISPLAY 'TFR'                                                00010799
+           PERFORM LEX.                                                 00010899
+           PERFORM READ-VAR.                                            00010999
+           DISPLAY 'SWP'                                                00011099
+           DISPLAY 'SUB'                                                00011199
+           PERFORM WRITE-VAR.                                           00011299
+           ADD 3 TO WS-EMIT-ADDR.                                       00011399
+      *                                                                 00011499
+       COMPILE-LABEL.                                                   00011599
+           PERFORM LEX.                                                 00011699
+           MOVE WS-LEX-WORD  TO WS-LABEL-NAME (WS-LABEL-COUNT).         00011799
+           MOVE WS-EMIT-ADDR TO WS-LABEL-ADDR (WS-LABEL-COUNT).         00011899
+           ADD 1 TO WS-LABEL-COUNT.                                     00011999
+      *                                                                 00012099
+       COMPILE-PRINT.                                                   00012199
+           PERFORM LEX.                                                 00012299
+           PERFORM READ-VAR.                                            00012399
+           DISPLAY 'PRT'.                                               00012499
+           ADD 1 TO WS-EMIT-ADDR.                                       00012599
+      *                                                                 00012699
+       COMPILE-GOTO.                                                    00012799
+           PERFORM LEX.                                                 00012899
+           SET I-LABEL TO 1                                             00012999
+           SEARCH WS-LABEL                                              00013099
+               WHEN WS-LABEL-NAME (I-LABEL) EQUAL WS-LEX-WORD           00013199
+                   DISPLAY 'UGO ' WS-LABEL-ADDR (I-LABEL)               00013299
+                   ADD 1 TO WS-EMIT-ADDR.                               00013399
+      *                                                                 00013499
+      * NUMBER CONVERT                                                  00013599
+      *                                                                 00013699
+       CONVERT.                                                         00013799
+           MOVE 0 TO WS-CONV-NUMBER.                                    00013899
+           PERFORM CONVERT-STEP                                         00013999
+               VARYING WS-CONV-INDEX FROM 1 BY 1                        00014099
+               UNTIL WS-LEX-OUT (WS-CONV-INDEX) EQUAL SPACE.            00014199
+       CONVERT-STEP.                                                    00014299
+           MULTIPLY WS-CONV-NUMBER BY 10 GIVING WS-CONV-NUMBER.         00014399
+           MOVE WS-LEX-OUT (WS-CONV-INDEX) TO WS-CONV-DIGIT.            00014499
+           ADD WS-CONV-DIGIT TO WS-CONV-NUMBER.                         00014599
+      *                                                                 00014699
+      * READ & WRITE                                                    00014799
+      *                                                                 00014899
+       READ-VAR.                                                        00014999
+           IF WS-LEX-NUMBER                                             00015099
+               PERFORM CONVERT                                          00015199
+               DISPLAY 'LDI ' WS-CONV-NUMBER                            00015299
+           OTHERWISE PERFORM READ-VAR-LOOKUP.                           00015399
+           ADD 1 TO WS-EMIT-ADDR.                                       00015499
+       READ-VAR-LOOKUP.                                                 00015599
+           SET I-VAR TO 1.                                              00015699
+           SEARCH WS-VAR                                                00015799
+               AT END                                                   00015899
+                   DISPLAY 'LDI 0000'                                   00015999
+               WHEN WS-VAR-NAME (I-VAR) EQUAL WS-LEX-WORD               00016099
+                   DISPLAY 'LDA ' WS-VAR-ADDR (I-VAR).                  00016199
+                                                                        00016299
+      *                                                                 00016399
+       WRITE-VAR.                                                       00016499
+           SET I-VAR TO 1.                                              00016599
+           SEARCH WS-VAR                                                00016699
+               AT END                                                   00016799
+                   PERFORM WRITE-VAR-ALLOC                              00016899
+               WHEN WS-VAR-NAME (I-VAR) EQUAL WS-WRITE-WORD             00016999
+                   DISPLAY 'STA ', WS-VAR-ADDR (I-VAR).                 00017099
+           ADD 1 TO WS-EMIT-ADDR.                                       00017199
+       WRITE-VAR-ALLOC.                                                 00017299
+           DISPLAY 'STA ' WS-VAR-COUNT.                                 00017399
+           MOVE WS-WRITE-WORD TO WS-VAR-NAME (WS-VAR-COUNT).            00017499
+           MOVE WS-VAR-COUNT  TO WS-VAR-ADDR (WS-VAR-COUNT).            00017599
+           ADD 1 TO WS-VAR-COUNT.                                       00017699
+      *                                                                 00017757
+      * LEXER                                                           00017857
+      *                                                                 00017957
+       LEX-RESET.                                                       00018057
+           MOVE 1 TO WS-LEX-IN-PTR.                                     00018190
+      *                                                                 00018277
+       LEX.                                                             00018358
+           PERFORM LEX-INIT.                                            00018493
+           PERFORM LEX-LOOP UNTIL WS-LEX-STATE IS EQUAL TO 'D'.         00018574
+      *                                                                 00018693
+       LEX-INIT.                                                        00018793
+           MOVE 1 TO WS-LEX-OUT-PTR.                                    00018893
+           MOVE SPACES TO WS-LEX-WORD.                                  00018993
+           MOVE 'S' TO WS-LEX-STATE.                                    00019093
+           MOVE 'N' TO WS-LEX-TYPE.                                     00019199
+      *                                                                 00019277
+       LEX-LOOP.                                                        00019358
+           MOVE WS-LEX-IN (WS-LEX-IN-PTR) TO WS-LEX-CHAR.               00019478
+           ADD 1 TO WS-LEX-IN-PTR.                                      00019558
+      *                                                                 00019699
+           IF WS-LEX-IN-PTR GREATER THAN 80 MOVE 'D' TO WS-LEX-STATE.   00019799
+           IF WS-LEX-CHAR IS ALPHABETIC AND WS-LEX-CHAR NOT EQUAL SPACE 00019899
+               MOVE 'A' TO WS-LEX-TYPE.                                 00019999
+      *                                                                 00020099
+           IF WS-LEX-STATE IS EQUAL TO 'L' PERFORM LEX-STATE-LITERAL.   00020197
+           IF WS-LEX-STATE IS EQUAL TO 'S' PERFORM LEX-STATE-SEEK.      00020274
+           IF WS-LEX-STATE IS EQUAL TO 'B' PERFORM LEX-STATE-BUFFER.    00020374
+           IF WS-LEX-STATE IS EQUAL TO 'C' PERFORM LEX-STATE-COMMENT.   00020499
+      *                                                                 00020577
+       LEX-STATE-SEEK.                                                  00020658
+           IF WS-LEX-CHAR IS NOT EQUAL TO SPACE                         00020795
+               MOVE 'B' TO WS-LEX-STATE.                                00020864
+           IF WS-LEX-CHAR IS EQUAL TO '"'                               00020995
+               MOVE 'L' TO WS-LEX-STATE.                                00021095
+           IF WS-LEX-CHAR IS EQUAL TO '#'                               00021199
+               MOVE 'C' TO WS-LEX-STATE.                                00021299
+      *                                                                 00021377
+       LEX-STATE-BUFFER.                                                00021458
+           IF WS-LEX-CHAR IS EQUAL TO SPACE                             00021574
+               MOVE 'D' TO WS-LEX-STATE                                 00021666
+           OTHERWISE PERFORM LEX-COPY.                                  00021765
+      *                                                                 00021894
+       LEX-STATE-LITERAL.                                               00021994
+           IF WS-LEX-CHAR IS EQUAL TO '"'                               00022094
+               MOVE 'D' TO WS-LEX-STATE                                 00022194
+           OTHERWISE PERFORM LEX-COPY.                                  00022294
+      *                                                                 00022399
+       LEX-STATE-COMMENT.                                               00022499
+           MOVE 'D' TO WS-LEX-STATE.                                    00022599
+      *                                                                 00022699
+       LEX-COPY.                                                        00022764
+           MOVE WS-LEX-CHAR TO WS-LEX-OUT (WS-LEX-OUT-PTR).             00022878
+           ADD 1 TO WS-LEX-OUT-PTR.                                     00022958

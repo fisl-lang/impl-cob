@@ -1,0 +1,11 @@
+//HERC01C JOB (COBOL),                                                  00000104
+//            'FIRST STAGE COMPILE',                                    00000205
+//            CLASS=A,                                                  00000301
+//            MSGCLASS=H,                                               00000401
+//            MSGLEVEL=(1,1)                                            00000501
+//COMPILE EXEC COBUCL                                                   00000621
+//COB.SYSIN    DD DSN=HERC01.FISL.COBLIB(COMPILER),DISP=SHR             00000722
+//LKED.SYSLMOD DD DSN=HERC01.FISL.LOADLIB(COMPILER),DISP=SHR            00000822
+//LKED.SYSLIB  DD DSN=SYS1.COBLIB,DISP=SHR                              00000901
+//             DD DSN=SYS1.LINKLIB,DISP=SHR                             00001001
+//SYSPRINT     DD SYSOUT=*                                              00001108

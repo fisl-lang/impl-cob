@@ -1,0 +1,15 @@
+//HERC01F JOB (FISL),                                                   00000102
+//            'SECOND STAGE COMPILE',                                   00000204
+//            CLASS=B,                                                  00000302
+//            MSGCLASS=H,                                               00000402
+//            MSGLEVEL=(1,1)                                            00000502
+//COMPILE EXEC PGM=COMPILER                                             00000625
+//STEPLIB DD DSN=HERC01.FISL.LOADLIB,DISP=SHR                           00000704
+//SYSIN   DD DSN=HERC01.FISL.PRGLIB(FIB),DISP=SHR                       00000824
+//SYSOUT  DD DSN=HERC01.FISL.BUILD,                                     00000904
+// DISP=(OLD,CATLG),                                                    00001022
+// SPACE=(CYL,(5,1)),                                                   00001104
+// UNIT=SYSDA,                                                          00001204
+// VOL=SER=PUB001,                                                      00001319
+// DCB=(RECFM=FB)                                                       00001404
+//SYSPRINT DD SYSOUT=H                                                  00001504

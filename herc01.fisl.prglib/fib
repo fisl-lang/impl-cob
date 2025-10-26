@@ -1,0 +1,9 @@
+LABEL MAIN                                                              00000106
+    LET A BE 1                                                          00000206
+    LET B BE 1                                                          00000306
+LABEL LOOP                                                              00000406
+    LET C BE A PLUS B                                                   00000508
+    LET A BE B                                                          00000606
+    LET B BE C                                                          00000706
+    PRINT A                                                             00000805
+    GOTO LOOP                                                           00000905

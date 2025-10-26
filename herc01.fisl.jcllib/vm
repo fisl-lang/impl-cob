@@ -1,0 +1,10 @@
+//HERC01V JOB (COBOL),                                                  00000107
+//            'VM',                                                     00000205
+//            CLASS=A,                                                  00000301
+//            MSGCLASS=H,                                               00000401
+//            REGION=8M,TIME=1,                                         00000510
+//            MSGLEVEL=(1,1)                                            00000601
+//COMPILE EXEC COBUCG                                                   00000705
+//COB.SYSIN DD DSN=HERC01.FISL.COBLIB(VM),DISP=SHR                      00000808
+//GO.SYSIN  DD DSN=HERC01.FISL.BUILD,DISP=SHR                           00000908
+//SYSOUT    DD SYSOUT=*                                                 00001009

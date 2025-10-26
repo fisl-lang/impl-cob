@@ -1,0 +1,93 @@
+       IDENTIFICATION DIVISION.                                         00000100
+       PROGRAM-ID. 'VM'.                                                00000205
+       ENVIRONMENT DIVISION.                                            00000302
+       INPUT-OUTPUT SECTION.                                            00000406
+       FILE-CONTROL.                                                    00000506
+           SELECT SOURCE-FILE ASSIGN TO UT-S-SYSIN.                     00000606
+                                                                        00000706
+       DATA DIVISION.                                                   00000803
+       FILE SECTION.                                                    00000906
+       FD  SOURCE-FILE                                                  00001006
+           LABEL RECORDS ARE STANDARD                                   00001106
+           BLOCK CONTAINS 10 RECORDS                                    00001206
+           RECORD CONTAINS 80 CHARACTERS.                               00001306
+           01 FD-SOURCE-LINE PIC X(80).                                 00001407
+                                                                        00001506
+       WORKING-STORAGE SECTION.                                         00001606
+      * SOURCE READING                                                  00001716
+           01 WS-SOURCE-INDEX PIC 9999 COMP VALUE 1.                    00001816
+           01 WS-SOURCE.                                                00001907
+               02 WS-SOURCE-LINE                                        00002007
+                   OCCURS 1000 TIMES                                    00002107
+                   INDEXED BY I-SRC.                                    00002207
+                   03 FILLER          PIC A.                            00002315
+                   03 WS-SOURCE-INST  PIC AAA.                          00002407
+                   03 FILLER          PIC A.                            00002507
+                   03 WS-SOURCE-ATTR  PIC 9999.                         00002615
+           01 WS-EOF-FLAG PIC X VALUE 'N'.                              00002707
+               88 WS-EOF VALUE 'Y'.                                     00002807
+      * EXECUTION                                                       00002916
+           01 WS-STATUS     PIC X VALUE 'Y'.                            00003017
+               88 WS-RUNNING VALUE 'Y'.                                 00003117
+               88 WS-EXIT    VALUE 'N'.                                 00003217
+           01 WS-EXEC-INDEX PIC 9999 COMP VALUE 1.                      00003316
+           01 WS-EXEC-INST  PIC AAA.                                    00003417
+           01 WS-EXEC-ATTR  PIC 9999.                                   00003517
+           01 WS-ACC        PIC 9999.                                   00003616
+           01 WS-AUX        PIC 9999.                                   00003716
+           01 WS-TMP        PIC 9999.                                   00003820
+           01 WS-MEM.                                                   00003916
+               02 WS-MEM-WORD PIC 9999                                  00004016
+                   OCCURS 1000.                                         00004116
+           01 WS-STACK-INDEX PIC 9999 COMP VALUE 1.                     00004216
+           01 WS-STACK.                                                 00004316
+               02 WS-STACK-WORD PIC 9999                                00004416
+                   OCCURS 100.                                          00004516
+                                                                        00004606
+       PROCEDURE DIVISION.                                              00004703
+       MAIN.                                                            00004804
+           OPEN INPUT SOURCE-FILE.                                      00004906
+           PERFORM READ-LINE UNTIL WS-EOF.                              00005008
+           CLOSE SOURCE-FILE.                                           00005108
+           PERFORM EXECUTE.                                             00005212
+           DISPLAY 'CORE: ' WS-MEM.                                     00005327
+           STOP RUN.                                                    00005408
+                                                                        00005509
+       READ-LINE.                                                       00005609
+           READ SOURCE-FILE RECORD                                      00005713
+               AT END MOVE 'Y' TO WS-EOF-FLAG.                          00005811
+           IF NOT WS-EOF                                                00005911
+               MOVE FD-SOURCE-LINE TO WS-SOURCE-LINE (WS-SOURCE-INDEX)  00006012
+               ADD 1 TO WS-SOURCE-INDEX.                                00006112
+                                                                        00006212
+       EXECUTE.                                                         00006312
+           PERFORM EXECUTE-STEP UNTIL WS-EXIT.                          00006417
+                                                                        00006517
+       EXECUTE-STEP.                                                    00006617
+           MOVE WS-SOURCE-INST (WS-EXEC-INDEX) TO WS-EXEC-INST.         00006717
+           MOVE WS-SOURCE-ATTR (WS-EXEC-INDEX) TO WS-EXEC-ATTR.         00006817
+           ADD 1 TO WS-EXEC-INDEX.                                      00006917
+                                                                        00007017
+           IF WS-EXEC-INST EQUAL 'LDI'                                  00007120
+               MOVE WS-EXEC-ATTR TO WS-ACC.                             00007220
+           IF WS-EXEC-INST EQUAL 'LDA'                                  00007320
+               MOVE WS-MEM-WORD (WS-EXEC-ATTR) TO WS-ACC.               00007420
+           IF WS-EXEC-INST EQUAL 'STA'                                  00007520
+               MOVE WS-ACC TO WS-MEM-WORD (WS-EXEC-ATTR).               00007620
+           IF WS-EXEC-INST EQUAL 'TFR'                                  00007720
+               MOVE WS-ACC TO WS-AUX.                                   00007820
+           IF WS-EXEC-INST EQUAL 'SWP'                                  00007920
+               MOVE WS-ACC TO WS-TMP                                    00008021
+               MOVE WS-AUX TO WS-ACC                                    00008121
+               MOVE WS-TMP TO WS-AUX.                                   00008220
+           IF WS-EXEC-INST EQUAL 'ADD'                                  00008320
+               ADD WS-AUX TO WS-ACC.                                    00008423
+           IF WS-EXEC-INST EQUAL 'SUB'                                  00008520
+               SUBTRACT WS-AUX FROM WS-ACC.                             00008623
+           IF WS-EXEC-INST EQUAL 'PRT'                                  00008726
+               DISPLAY WS-ACC.                                          00008823
+           IF WS-EXEC-INST EQUAL 'UGO'                                  00008921
+               MOVE WS-EXEC-ATTR TO WS-EXEC-INDEX                       00009021
+               ADD 1 TO WS-EXEC-INDEX.                                  00009121
+           IF WS-EXEC-INST EQUAL 'BRK'                                  00009222
+               MOVE 'N' TO WS-STATUS.                                   00009322
